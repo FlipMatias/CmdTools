@@ -4,11 +4,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <algorithm>
 #include <chrono>
 using namespace std;
-using WordMap = map<string, size_t>;
+using WordMap = unordered_map<string, size_t>;
 
 
 struct Word
@@ -34,7 +35,7 @@ void displayData(const WordMap& words);
 void rearrangeData(const WordMap& words);
 void saveTo(string_view filepath, const multiset<Word>& words);
 auto getOutputFilename(string inputFilename) -> string;
-auto split(const string& str, const string& delims = ",.\';?-[]:!() ") -> vector<string>;
+auto split(const string& str, string_view delims = ",.\';?-[]:!() ") -> vector<string>;
 auto join(vector<string>::iterator start, vector<string>::iterator end) -> string;
 auto capitalize(string& str) -> string&;
 auto isWord(const string& str) -> bool;
@@ -138,7 +139,7 @@ void displayData(const WordMap& words)
 }
 
 
-auto split(const string& str, const string& delim) -> vector<string>
+auto split(const string& str, string_view delim) -> vector<string>
 {
     stringstream stringStream(str);
     string line;
