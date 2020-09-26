@@ -124,10 +124,9 @@ auto getOutputFilename(string inputFilename) -> string
 
     string fname = split(inputFilename, "/").back();
     auto fnToks = split(fname, ".");
-    auto ext = fnToks.back();
     fnToks.pop_back();
     fname = join(fnToks.begin(), fnToks.end());
-    return fname + ".wcount." + ext;
+    return fname + ".wcount.txt";
 }
 
 
