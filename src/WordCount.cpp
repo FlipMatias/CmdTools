@@ -3,11 +3,12 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <map>
 #include <unordered_map>
 #include <set>
 #include <algorithm>
 #include <chrono>
+#include <string.h>
+#include <assert.h>
 using namespace std;
 using WordMap = unordered_map<string, size_t>;
 
@@ -37,8 +38,8 @@ void saveTo(string_view filepath, const multiset<Word>& words);
 auto getOutputFilename(string inputFilename) -> string;
 auto split(const string& str, string_view delims = ",.\';?-[]:!() ") -> vector<string>;
 auto join(vector<string>::iterator start, vector<string>::iterator end) -> string;
-auto capitalize(string& str) -> string&;
-auto isWord(const string& str) -> bool;
+auto capitalize(char* str) -> char*;
+auto isWord(const char* str) -> bool;
 
 template <typename T> void showTimeStats(T timePoint);
 
@@ -73,11 +74,18 @@ void parseFile(string_view filename)
 
     WordMap words;
     string line;
+    line.reserve(0xffff);
+
+    const char* delim = ",.\';?-[]:!() \n\t\r<>";
+
     while (getline(in, line)) {
-        for (string& w : split(line)) {
-            if (isWord(capitalize(w))) {
-                words[w]++;
+        char* tok = strtok(&line[0], delim);
+        while (tok != nullptr) {
+            if (isWord(capitalize(tok))) {
+                words[tok]++;
             }
+
+            tok = strtok(nullptr, delim);
         }
     }
 
@@ -174,22 +182,23 @@ auto join(vector<string>::iterator start, vector<string>::iterator end) -> strin
 }
 
 
-auto capitalize(string& str) -> string&
+auto capitalize(char* str) -> char*
 {
-    if (str.empty())
+    if (strlen(str) == 0)
         return str;
 
-    for (char& c : str)
-        c = tolower(c);
+    char* c = str;
+    for (; c != 0; ++c)
+        *c = tolower(*c);
 
     str[0] = static_cast<char>(toupper(str[0]));
     return str;
 }
 
 
-auto isWord(const string& str) -> bool
+auto isWord(const char* str) -> bool
 {
-    if (str.size() == 1) {
+    if (strlen(str) == 1) {
         if (str[0] != 'A' ||
             str[0] != 'E' ||
             str[0] != 'I' ||
@@ -215,3 +224,4 @@ void showTimeStats(T timePoint)
          << " us | " << millis
          << " ms\n";
 }
+
