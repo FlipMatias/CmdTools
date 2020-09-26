@@ -38,6 +38,7 @@ void saveTo(string_view filepath, const multiset<Word>& words);
 auto getOutputFilename(string inputFilename) -> string;
 auto split(const string& str, string_view delims = ",.\';?-[]:!() ") -> vector<string>;
 auto join(vector<string>::iterator start, vector<string>::iterator end) -> string;
+auto getline(char** line, size_t* len, FILE* fp) -> int64_t;
 auto capitalize(char* str) -> char*;
 auto isWord(const char* str) -> bool;
 
@@ -63,23 +64,24 @@ void parseFile(string_view filename)
 {
     using namespace std::chrono;
 
-    ifstream in;
-    in.open(filename.data());
-    if (!in.is_open()) {
+    size_t bytes = 4096;
+    char* buffer = (char*)malloc(sizeof(char) * bytes);
+
+    FILE* fp = fopen(filename.data(), "r");
+    if (!fp) {
         cout << "Failed to open '" << filename << "'\n";
+        free(buffer);
         exit(-1);
     }
 
     auto timeStart = high_resolution_clock::now();
 
     WordMap words;
-    string line;
-    line.reserve(0xffff);
-
     const char* delim = ",.\';?-[]:!() \n\t\r<>";
 
-    while (getline(in, line)) {
-        char* tok = strtok(&line[0], delim);
+    while (getline(&buffer, &bytes, fp) != -1)
+    {
+        char* tok = strtok(buffer, delim);
         while (tok != nullptr) {
             if (isWord(capitalize(tok))) {
                 words[tok]++;
@@ -88,6 +90,9 @@ void parseFile(string_view filename)
             tok = strtok(nullptr, delim);
         }
     }
+
+    fclose(fp);
+    free(buffer);
 
     rearrangeData(words);
 
@@ -179,6 +184,57 @@ auto join(vector<string>::iterator start, vector<string>::iterator end) -> strin
     }
 
     return str;
+}
+
+
+auto getline(char** line, size_t* len, FILE* fp) -> int64_t
+{
+    if (!line || !len || !fp) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char chunk[128];
+
+    if(*line == NULL || *len < sizeof(chunk)) {
+         *len = sizeof(chunk);
+         if((*line = malloc(*len)) == NULL) {
+             errno = ENOMEM;
+             return -1;
+         }
+     }
+
+    (*line)[0] = '\0';
+
+    while(fgets(chunk, sizeof(chunk), fp) != NULL)
+    {
+        size_t len_used = strlen(*line);
+        size_t chunk_used = strlen(chunk);
+
+        if(*len - len_used < chunk_used) {
+            if(*len > SIZE_MAX / 2) {
+                errno = EOVERFLOW;
+                return -1;
+            } else {
+                *len *= 2;
+            }
+
+            if((*line = realloc(*line, *len)) == NULL) {
+                errno = ENOMEM;
+                return -1;
+            }
+        }
+
+        memcpy(*line + len_used, chunk, chunk_used);
+        len_used += chunk_used;
+        (*line)[len_used] = '\0';
+
+        if((*line)[len_used - 1] == '\n') {
+            return (ssize_t)len_used;
+        }
+    }
+
+    return -1;
 }
 
 
